@@ -3,7 +3,7 @@ require 'bundler/setup'
 Bundler.require(:default)
 require 'telegram/bot'
 
-Watir.default_timeout = 60
+Watir.default_timeout = 180
 
 class Bot
   attr_reader :link, :browser, :client, :current_time
@@ -63,6 +63,10 @@ class Bot
       break unless browser.div(id: 'h-captcha').exists?
     end
 
+    if browser.div(id: 'h-captcha').exists?
+      raise "Cannot pass captcha guard"
+    end
+
     if browser.alert.exists?
       browser.alert.ok
     end
@@ -87,7 +91,7 @@ class Bot
     puts 'decode captcha...'
     captcha = client.decode!(path: image_filepath)
     captcha_code = captcha.text
-    puts "captcha_code: #{captcha_code}"
+    puts "[x] captcha_code: #{captcha_code}"
 
     # puts 'Enter code:'
     # code = gets
@@ -109,40 +113,82 @@ class Bot
   end
 
   def check_queue
+    notify_user("beginning process, check link is #{link}...")
+
     puts "===== Current time: #{current_time} ====="
+
+    puts "going to to link #{link}..."
+
     browser.goto link
+
+    # unless browser.goto link
+    #   puts "[x] gone succesfully"
+    # else
+    #   raise "cannot do browser.goto"
+    # end
+
+    puts "passing hcaptcha..."
 
     pass_hcaptcha
 
-    browser.wait_until(timeout: 30) { |b| b.title == 'Очередь в Стамбуле' }
+    puts "[x] captcha passed"
+
+    puts "waiting main page load..."
+
+    browser.wait_until(timeout: 120) { |b| b.title == 'Очередь в Стамбуле' }
+
+    puts "[x] page loaded"
 
     pass_captcha_on_form
 
+    puts "pressing button main_content button A..."
+
     browser.button(id: 'ctl00_MainContent_ButtonA').click
+
+    puts "[x] main_content button pressed"
 
     sleep 3
 
+    puts "checking alert window..."
+
     if browser.alert.exists?
       browser.alert.ok
+      puts "[x] alert window passed"
     end
 
     sleep 1
 
+    puts "passing hcaptcha..."
+
     pass_hcaptcha
+
+    puts "[x] hcaptcha passed"
+
+    puts "clicking make appointment button..."
 
     click_make_appointment_button
 
+    puts "[x] appointment button clicked"
+
+    puts "saving page..."
+
     save_page
 
+    puts "[x] page saved"
+
+    puts "checking test phrase on page..."
+
     unless browser.p(text: /Извините, но в настоящий момент/).exists?
-      notify_user('New time for an appointment found!')
+      notify_user('[x] NEW TIME FOR AN APPOINTMENT FOUND!')
+    else
+      notify_user('[x] no new appoinments...')
     end
 
     browser.close
     puts '=' * 50
   rescue Exception => e
     browser.close
-    notify_user('exception!')
+    notify_user("[x] exception! #{e.message}")
     raise e
   end
 end

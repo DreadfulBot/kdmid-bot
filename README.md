@@ -2,6 +2,8 @@
 
 Checks ability to make an appointment to consul
 
+Original repository here - https://gitfront.io/r/accessd/6GgvFZvbdTTM/kdmid-bot/ 
+
 ## Setup
 
 Register on https://2captcha.com/ and get API key.
