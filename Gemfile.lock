@@ -11,6 +11,7 @@ GEM
       descendants_tracker (~> 0.0.1)
     descendants_tracker (0.0.4)
       thread_safe (~> 0.3, >= 0.3.1)
+    dotenv (2.8.1)
     dry-inflector (0.3.0)
     faraday (2.4.0)
       faraday-net_http (~> 2.0)
@@ -56,6 +57,7 @@ PLATFORMS
   x86_64-darwin-20
 
 DEPENDENCIES
+  dotenv
   pry
   selenium-webdriver (= 4.3.0)
   telegram-bot-ruby

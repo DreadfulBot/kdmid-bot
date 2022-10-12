@@ -1,4 +1,5 @@
 require 'rubygems'
+# require 'dotenv'
 require 'bundler/setup'
 Bundler.require(:default)
 require 'telegram/bot'
@@ -8,8 +9,9 @@ Watir.default_timeout = 180
 class Bot
   attr_reader :link, :browser, :client, :current_time
 
-  def initialize
-    @link = "http://#{ENV.fetch('KDMID_SUBDOMAIN')}.kdmid.ru/queue/OrderInfo.aspx?id=#{ENV.fetch('ORDER_ID')}&cd=#{ENV.fetch('CODE')}"
+  def load(kdmid_subdomain, order_id, code)
+    # @link = "http://#{ENV.fetch('KDMID_SUBDOMAIN')}.kdmid.ru/queue/OrderInfo.aspx?id=#{ENV.fetch('ORDER_ID')}&cd=#{ENV.fetch('CODE')}"
+    @link = "http://#{kdmid_subdomain}.kdmid.ru/queue/OrderInfo.aspx?id=#{order_id}&cd=#{code}"
     @client = TwoCaptcha.new(ENV.fetch('TWO_CAPTCHA_KEY'))
     @current_time = Time.now.utc.to_s
     puts 'Init...'
@@ -112,7 +114,11 @@ class Bot
     File.open("./pages/#{current_time}.html", 'w') { |f| f.write browser.html }
   end
 
-  def check_queue
+  def check_queue(kdmid_subdomain, order_id, code)
+    notify_user("checking queue for #{kdmid_subdomain}")
+
+    load(kdmid_subdomain, order_id, code)
+
     notify_user("beginning process, check link is #{link}...")
 
     puts "===== Current time: #{current_time} ====="
@@ -120,12 +126,6 @@ class Bot
     puts "going to to link #{link}..."
 
     browser.goto link
-
-    # unless browser.goto link
-    #   puts "[x] gone succesfully"
-    # else
-    #   raise "cannot do browser.goto"
-    # end
 
     puts "passing hcaptcha..."
 
@@ -191,6 +191,20 @@ class Bot
     notify_user("[x] exception! #{e.message}")
     raise e
   end
+  
+  def check_all_queues
+    subdomains = ENV.fetch("KDMID_SUBDOMAIN").split(',')
+    order_ids = ENV.fetch("ORDER_ID").split(',')
+    codes = ENV.fetch("CODE").split(',')
+
+    subdomains.each_with_index do |subdomain, index|
+      # puts subdomain, order_ids[index], codes[index]
+      check_queue(subdomain, order_ids[index], codes[index] )
+    end
+
+  end
 end
 
-Bot.new.check_queue
+# Bot.new.check_queue
+# Dotenv.load
+Bot.new.check_all_queues
