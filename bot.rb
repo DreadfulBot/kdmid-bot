@@ -135,7 +135,7 @@ class Bot
 
     puts "waiting main page load..."
 
-    browser.wait_until(timeout: 120) { |b| b.title == 'Очередь в Стамбуле' }
+    browser.wait_until(timeout: 120) { |b| b.title =~ /Очередь.*/i }
 
     puts "[x] page loaded"
 
