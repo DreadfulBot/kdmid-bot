@@ -10,20 +10,27 @@ class Bot
   attr_reader :link, :browser, :client, :current_time
 
   def load(kdmid_subdomain, order_id, code)
-    # @link = "http://#{ENV.fetch('KDMID_SUBDOMAIN')}.kdmid.ru/queue/OrderInfo.aspx?id=#{ENV.fetch('ORDER_ID')}&cd=#{ENV.fetch('CODE')}"
     @link = "http://#{kdmid_subdomain}.kdmid.ru/queue/OrderInfo.aspx?id=#{order_id}&cd=#{code}"
     @client = TwoCaptcha.new(ENV.fetch('TWO_CAPTCHA_KEY'))
     @current_time = Time.now.utc.to_s
     puts 'Init...'
 
-    options = {}
+    options = {
+    }
+
+    proxy = {
+      ssl: '185.169.183.37:8080',
+      http: '185.169.183.37:8080'
+    }
+
     if ENV['BROWSER_PROFILE']
       options.merge!(profile: ENV['BROWSER_PROFILE'])
     end
     @browser = Watir::Browser.new(
       ENV.fetch('BROWSER').to_sym,
       url: "http://#{ENV.fetch('HUB_HOST')}/wd/hub",
-      options: options
+      options: options,
+      # proxy: proxy
     )
   end
 
@@ -35,6 +42,54 @@ class Bot
     Telegram::Bot::Client.run(ENV['TELEGRAM_TOKEN']) do |bot|
       bot.api.send_message(chat_id: ENV['TELEGRAM_CHAT_ID'], text: message)
     end
+  end
+
+  def pass_ddosprotect
+    sleep 5
+
+    iframe = browser.iframe(id: 'ddg-iframe')
+    iframe.wait_until(timeout: 60, &:exists?)
+
+    puts 'waiting ddg-captcha checkbox'
+
+    checkbox = iframe.div(class: 'ddg-captcha__checkbox')
+    checkbox.wait_until(timeout: 60, &:exists?)
+
+    puts 'clicking not robot button'
+
+    checkbox.click
+
+    captcha_image = iframe.images(class: 'ddg-modal__captcha-image').first
+
+    captcha_image.wait_until(timeout: 20, &:exists?)
+
+    sleep 5
+
+    captcha_src = captcha_image.src
+
+    regex = /\Adata:([-\w]+\/[-\w\+\.]+)?;base64,(.*)/m
+
+    data_uri_parts = captcha_src.match(regex) || []
+
+    puts 'save captcha image to file...'
+
+    image_filepath = "./captches/#{current_time}.png"
+
+    File.open(image_filepath, 'wb') do |f|
+      f.write(Base64.decode64(data_uri_parts[2]))
+    end
+
+    puts 'decode captcha...'
+
+    captcha = client.decode!(path: image_filepath)
+    captcha_code = captcha.text
+
+    puts "[x] ddosprotect captcha_code: #{captcha_code}"
+
+    text_field = iframe.text_field(class: 'ddg-modal__input')
+    text_field.set captcha_code
+
+    iframe.button(class: 'ddg-modal__submit').click
   end
 
   def pass_hcaptcha
@@ -95,10 +150,6 @@ class Bot
     captcha_code = captcha.text
     puts "[x] captcha_code: #{captcha_code}"
 
-    # puts 'Enter code:'
-    # code = gets
-    # puts code
-
     text_field = browser.text_field(id: 'ctl00_MainContent_txtCode')
     text_field.set captcha_code
   end
@@ -119,7 +170,7 @@ class Bot
 
     load(kdmid_subdomain, order_id, code)
 
-    notify_user("beginning process, check link is #{link}...")
+    notify_user("beginning process, check link is #{link} ...")
 
     puts "===== Current time: #{current_time} ====="
 
@@ -133,9 +184,13 @@ class Bot
 
     puts "[x] captcha passed"
 
+    puts "[x] passing ddos protect"
+
+    pass_ddosprotect
+
     puts "waiting main page load..."
 
-    browser.wait_until(timeout: 120) { |b| b.title =~ /Очередь.*/i }
+    browser.wait_until(timeout: 100) { |b| b.title =~ /Очередь.*/i }
 
     puts "[x] page loaded"
 
@@ -178,7 +233,9 @@ class Bot
 
     puts "checking test phrase on page..."
 
-    unless browser.p(text: /Извините, но в настоящий момент/).exists?
+    stop_text_found = browser.p(text: /Извините, но в настоящий момент/).exists? || browser.p(text: /Свободное время в системе записи отсутствует/).exists?
+
+    unless stop_text_found
       notify_user('[x] NEW TIME FOR AN APPOINTMENT FOUND!')
     else
       notify_user('[x] no new appoinments...')
