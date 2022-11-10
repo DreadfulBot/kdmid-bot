@@ -47,8 +47,9 @@ class Bot
   def pass_ddosprotect
     sleep 5
 
+    return unless browser.iframe(id: 'ddg-iframe').exists?
+
     iframe = browser.iframe(id: 'ddg-iframe')
-    iframe.wait_until(timeout: 60, &:exists?)
 
     puts 'waiting ddg-captcha checkbox'
 
