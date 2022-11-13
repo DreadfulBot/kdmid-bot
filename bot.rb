@@ -50,9 +50,8 @@ class Bot
       iframe.wait_until(timeout: 15, &:exists?)
     rescue
       puts "ddos protect windows not detected"
+      return
     end
-
-    # return unless browser.iframe(id: 'ddg-iframe').exists?
 
     iframe = browser.iframe(id: 'ddg-iframe')
 
