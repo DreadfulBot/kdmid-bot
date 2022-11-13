@@ -45,9 +45,14 @@ class Bot
   end
 
   def pass_ddosprotect
-    sleep 15
+    begin
+      iframe = browser.iframe(id: 'ddg-iframe')
+      iframe.wait_until(timeout: 15, &:exists?)
+    rescue
+      puts "ddos protect windows not detected"
+    end
 
-    return unless browser.iframe(id: 'ddg-iframe').exists?
+    # return unless browser.iframe(id: 'ddg-iframe').exists?
 
     iframe = browser.iframe(id: 'ddg-iframe')
 
@@ -245,8 +250,10 @@ class Bot
     browser.close
     puts '=' * 50
   rescue Exception => e
-    browser.close
-    notify_user("[x] exception! #{e.message}")
+    if browser
+      browser.close
+    end
+    raise e
   end
   
   def check_all_queues
@@ -255,8 +262,18 @@ class Bot
     codes = ENV.fetch("CODE").split(',')
 
     subdomains.each_with_index do |subdomain, index|
-      # puts subdomain, order_ids[index], codes[index]
-      check_queue(subdomain, order_ids[index], codes[index] )
+      begin
+        repeat_counter = 3
+        while repeat_counter > 0 do
+          begin
+            check_queue(subdomain, order_ids[index], codes[index])
+            break
+          rescue Exception => e
+            repeat_counter = repeat_counter - 1
+            notify_user("[x] exception! #{e.message}, repeat_counter is #{repeat_counter}")
+          end
+        end
+      end
     end
 
   end
