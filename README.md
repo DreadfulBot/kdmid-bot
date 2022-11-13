@@ -44,3 +44,11 @@ Run bot with:
 ## Issues
 
 Problems with hcaptcha: do not pass it periodically
+
+## Deployments
+
+Example of crontab task, which runs bot each 15 minutes in daytime:
+
+```
+15 12-23 * * * cd /root/docker/kdmid-bot; ./bin/start.sh && ./bin/bot.sh 2>&1 | /usr/bin/logger -t kdmid-bot
+```
