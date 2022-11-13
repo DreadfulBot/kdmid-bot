@@ -45,7 +45,7 @@ class Bot
   end
 
   def pass_ddosprotect
-    sleep 5
+    sleep 15
 
     return unless browser.iframe(id: 'ddg-iframe').exists?
 
@@ -247,7 +247,6 @@ class Bot
   rescue Exception => e
     browser.close
     notify_user("[x] exception! #{e.message}")
-    raise e
   end
   
   def check_all_queues
