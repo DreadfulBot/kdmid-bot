@@ -47,7 +47,7 @@ class Bot
   def pass_ddosprotect
     begin
       iframe = browser.iframe(id: 'ddg-iframe')
-      iframe.wait_until(timeout: 15, &:exists?)
+      iframe.wait_until(timeout: 30, &:exists?)
     rescue
       puts "ddos protect windows not detected"
       return
