@@ -13,7 +13,7 @@ class Bot
     @link = "http://#{kdmid_subdomain}.kdmid.ru/queue/OrderInfo.aspx?id=#{order_id}&cd=#{code}"
     @client = TwoCaptcha.new(ENV.fetch('TWO_CAPTCHA_KEY'))
     @current_time = Time.now.utc.to_s
-    puts 'Init...'
+    puts '[x] Loading...'
 
     options = {
     }
@@ -171,11 +171,7 @@ class Bot
   end
 
   def check_queue(kdmid_subdomain, order_id, code)
-    notify_user("checking queue for #{kdmid_subdomain}")
-
     load(kdmid_subdomain, order_id, code)
-
-    notify_user("beginning process, check link is #{link} ...")
 
     puts "===== Current time: #{current_time} ====="
 
@@ -240,13 +236,20 @@ class Bot
 
     stop_text_found = browser.p(text: /Извините, но в настоящий момент/).exists? || browser.p(text: /Свободное время в системе записи отсутствует/).exists?
 
+    status = ''
+
     unless stop_text_found
-      notify_user('[x] NEW TIME FOR AN APPOINTMENT FOUND!')
+      status = '[x] NEW TIME FOR AN APPOINTMENT FOUND!' 
     else
-      notify_user('[x] no new appoinments...')
+      status = '[x] No new appointments' 
     end
 
+    message_start = "For #{kdmid_subdomain} - #{status}\nCheck link is #{link}\n"
+
+    notify_user(message_start)
+
     browser.close
+
     puts '=' * 50
   rescue Exception => e
     if browser
@@ -256,6 +259,8 @@ class Bot
   end
   
   def check_all_queues
+    notify_user("====[ QUEUES CHECKING STARTED ]====")
+
     subdomains = ENV.fetch("KDMID_SUBDOMAIN").split(',')
     order_ids = ENV.fetch("ORDER_ID").split(',')
     codes = ENV.fetch("CODE").split(',')
@@ -269,11 +274,16 @@ class Bot
             break
           rescue Exception => e
             repeat_counter = repeat_counter - 1
-            notify_user("[x] exception! #{e.message}, repeat_counter is #{repeat_counter}")
           end
+        end
+
+        if repeat_counter == 0
+            notify_user("[x] Exception! for subdomain #{subdomain}\n#{e.message}")
         end
       end
     end
+
+    notify_user("====[ QUEUES CHECKING FINISHED ]====")
 
   end
 end
