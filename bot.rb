@@ -191,7 +191,7 @@ class Bot
 
     puts "waiting main page load..."
 
-    browser.wait_until(timeout: 100) { |b| b.title =~ /Очередь.*/i }
+    browser.wait_until(timeout: 50) { |b| b.title =~ /Очередь.*/i }
 
     puts "[x] page loaded"
 
@@ -233,6 +233,12 @@ class Bot
     puts "[x] page saved"
 
     puts "checking test phrase on page..."
+    
+    bad_gateway_error = browser.p(text: /Bad Gateway/).exists?
+
+    if bad_gateway_error
+      raise "502 Error on page"
+    end
 
     stop_text_found = browser.p(text: /Извините, но в настоящий момент/).exists? || browser.p(text: /Свободное время в системе записи отсутствует/).exists?
 
@@ -246,11 +252,11 @@ class Bot
 
     message_start = "For #{kdmid_subdomain} - #{status}\nCheck link is #{link}\n"
 
-    notify_user(message_start)
-
     browser.close
 
     puts '=' * 50
+
+    return message_start
   rescue Exception => e
     if browser
       browser.close
@@ -259,18 +265,19 @@ class Bot
   end
   
   def check_all_queues
-    notify_user("====[ QUEUES CHECKING STARTED ]====")
-
     subdomains = ENV.fetch("KDMID_SUBDOMAIN").split(',')
     order_ids = ENV.fetch("ORDER_ID").split(',')
     codes = ENV.fetch("CODE").split(',')
+
+    final_message = "====[ QUEUES CHECKING STARTED ]====\n"
 
     subdomains.each_with_index do |subdomain, index|
       begin
         repeat_counter = 3
         while repeat_counter > 0 do
           begin
-            check_queue(subdomain, order_ids[index], codes[index])
+            queue_message = check_queue(subdomain, order_ids[index], codes[index])
+            final_message = "#{final_message}\n\n#{queue_message}"
             break
           rescue Exception => e
             repeat_counter = repeat_counter - 1
@@ -283,8 +290,7 @@ class Bot
       end
     end
 
-    notify_user("====[ QUEUES CHECKING FINISHED ]====")
-
+    notify_user(final_message)
   end
 end
 

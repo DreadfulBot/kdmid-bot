@@ -4,6 +4,7 @@ version: "3.7"
 services:
   hub:
     image: selenium/hub:4.3.0
+    shm_size: 1gb
     environment:
       GRID_BROWSER_TIMEOUT: 10000 # 10 seconds
       GRID_NEW_SESSION_WAIT_TIMEOUT: 20000
@@ -16,6 +17,7 @@ services:
 
   node-firefox:
     image: selenium/node-firefox:103.0
+    shm_size: 1gb
     environment: &SELENIUM_NODE_ENV
       SE_EVENT_BUS_HOST: hub
       SE_EVENT_BUS_PUBLISH_PORT: 4442
