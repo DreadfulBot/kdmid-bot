@@ -19,8 +19,8 @@ class Bot
     }
 
     proxy = {
-      ssl: '185.169.183.37:8080',
-      http: '185.169.183.37:8080'
+      ssl: '',
+      http: ''
     }
 
     if ENV['BROWSER_PROFILE']
