@@ -12,7 +12,7 @@ class Bot
   def load(kdmid_subdomain, order_id, code)
     @link = "http://#{kdmid_subdomain}.kdmid.ru/queue/OrderInfo.aspx?id=#{order_id}&cd=#{code}"
     @client = TwoCaptcha.new(ENV.fetch('TWO_CAPTCHA_KEY'))
-    @current_time = Time.now.utc.to_s
+    @current_time = Time.now.utc.localtime("+03:00").to_s
     puts '[x] Loading...'
 
     options = {
